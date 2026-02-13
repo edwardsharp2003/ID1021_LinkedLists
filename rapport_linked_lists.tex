@@ -10,155 +10,132 @@
 \pgfplotsset{compat=1.18} 
 
 \usepackage{minted}
+\usepackage{capt-of}
+
 
 \begin{document}
 
 \title{
-    \textbf{REPORT NAME}
+    \textbf{Linked Lists}
 }
 \author{Edward Sharp}
-\date{01-01-25}
+\date{14-02-25}
 
 \maketitle
 
-\section*{Introduction}
+\section{Introduction}
+This report aims to explore linked lists, implement basic methods for them, measure results and link them theoretically to their time complexities.
+Additionally, we will explore the implementation of a stack using linked lists and discuss execution time differences.
 
+\section{Implementation Details}
+The linked list data structure consists of individual nodes implemented as a `struct`.
+Each node stores a value and a pointer to the next node in the sequence.
+A linked list stores a pointer to the first node, referred to as its `head`.
 
-\section*{Layout}
+\subsection{Creating and Freeing a Linked List}
+The linked list and its nodes are dynamically allocated memory using `malloc`.
+The following methods initialize and free a linked list:
 
+\begin{minted}{c}
+linked *linked_create() {
+    linked *new = (linked*)malloc(sizeof(linked));
+    new->first = NULL;
+    return new;
+}
 
-\subsection{sections}
-
-{\tt *} (for
-example {\tt \textbackslash section* }).
-
-\subsection*{inserting code}
-
-{\tt minted}: {\tt List.sort()}.
-
-\begin{minted}{java}
-  for (int i = 0; i < 100; i++){
-    sum += i;
-  }
+void linked_free(linked *lnk) {
+    cell *nxt = lnk->first;
+    while (nxt != NULL) {
+        cell *tmp = nxt->tail;
+        free(nxt);
+        nxt = tmp;
+    }
+    free(lnk);
+}
 \end{minted}
 
-\section*{numbers}
+\subsection{Adding a Node to the Beginning}
+The `linked\_add` function allocates memory for a new node, assigns the given value,
+and links it as the head of the list.
 
-$1.2345678 s$ \\
-$1.235 s$ or $1.2 s$?
+\begin{minted}{c}
+void linked_add(linked *lnk, int item) {
+    cell *new = (cell*)malloc(sizeof(cell));
+    new->value = item;
+    new->tail = lnk->first;
+    lnk->first = new;
+}
+\end{minted}
 
-\subsection*{tables}
+\section{Benchmarks}
+To study the time complexity of the `\texttt{linked\_append}` operation, benchmarks were performed by varying the size of the linked lists.
 
-\begin{table}[h]
+\subsection{Varying the Size of List A}
+In the first benchmark, the size of list `a` was varied while keeping the size of list `b` constant.
+The code used for this initialization is given below:
+
+\begin{minted}{c}
+linked *linked_init(int n) {
+    linked *lnk = linked_create();
+    for (int i = 0; i < n; i++) {
+        linked_add(lnk, i);
+    }
+    return lnk;
+}
+\end{minted}
+
+\noindent
 \begin{center}
-\begin{tabular}{l|c|c}
-\textbf{prgm} & \textbf{runtime} & \textbf{ratio}\\
-\hline
-  dummy      &  115 &     1.0\\
-  union      &  535 &     4.6\\
-  tailr      &  420 &     3.6\\
-\end{tabular}
-\caption{Union and friends, list of 50000 elements, runtime in microseconds}
-\label{tab:table1}
+    \includegraphics[width=0.8\textwidth]{append_a_plot}
+    \captionof{figure}{Runtime of \texttt{linked\_append} varying the size of list a.}
+    \label{fig:append_a_plot}
 \end{center}
-\end{table}
+\noindent
 
-\section*{no f*ing screen shots}
+The results showed that the runtime of `\texttt{linked\_append}` increases linearly with the size of list `a`, indicating a time complexity of $O(n)$.
+This can be observed in Figure 1.
 
-\section*{graphs}
+\subsection{Varying the Size of List B}
+In the second benchmark, the size of list `b` was varied while keeping the size of list `a` constant.
+The results demonstrated that the runtime remains constant, confirming that the time complexity is not dependent on the size of list `b`.
 
-\begin{figure}[h]
-  \centering
-  \begin{subfigure}{.5\textwidth}
-    \centering
-    \includegraphics[scale=0.45]{fib.png}
-    \caption{using raster graphics}
-  \end{subfigure}%
-  \begin{subfigure}{.5\textwidth}
-    \centering
-    \includegraphics[scale=0.45]{fib.pdf}
-    \caption{using vector graphics.}
-  \end{subfigure}
-  \caption{Difference in image formats.}
-  \label{fig:images}
-\end{figure}
+This behavior occurs because the implementation of `\texttt{linked\_append}` does not involve traversing list `b`.
+Instead, the function only traverses list `a` to find the last element and links the head of list `b` as its new tail,
+which is done in $O(1)$ time with respect to the size of list `b`.
 
-\begin{figure}
-  \centering
-  \begin{tikzpicture}
-    \begin{axis}[
-      xmin=12, xmax=28, ymin=0, ymax=3500,
-      xlabel=n, ylabel={time in $\mu s$},
-      width=8cm, height=6cm]
-      \addlegendentry{runtime fib(n)};
-      \addplot[] table {fib.dat};
-    \end{axis}
+\noindent
+\begin{center}
+    \includegraphics[width=0.8\textwidth]{append_b_plot}
+    \captionof{figure}{Runtime of \texttt{linked\_append} varying the size of list b.}
+    \label{fig:append_b_plot}
+\end{center}
+\noindent
 
-  \end{tikzpicture}
-  \caption{The same graph using TikZ}
-  \label{fig:tikz}
-\end{figure}
-
-The graph in Fig.\ref{fig:tikz} is generated using Tikz and as you can
-see, I know have the time in "$\mu s$" instead of in "us".
+Thus, the results confirm that appending list `b` to list `a` is independent of the size of list `b` and has a constant time complexity,
+$O(1)$, with respect to the size of list `b`.
 
 
-\section*{\LaTeX things}
+\section{Comparison with Arrays}
+If the `append` operation were implemented using arrays,
+it would involve creating a new array with enough space to store the contents of both input arrays,
+copying elements from both arrays into the new array, and releasing the original arrays.
 
-Some \LaTeX errors that I frequently see that could easily be avoided
-if you only know where they come from.
+This process would result in a time complexity of $O(n + m)$, where $n$ and $m$ are the sizes of the two arrays.
+Compared to linked lists, arrays require additional memory allocation and copying overhead but provide faster random access times.
 
-\section*{less than}
-
-If you in your LaTeX code write "5 \textless\ 7" it will look like 5 <
-7 and "9 \textgreater\ 7" will look like 9 > 7. Using the characters
-\textless\ and \textgreater\ directly does not work ... so, how did I
-do it?  I used the commands {\tt  \textbackslash textless} and {\tt
-  \textbackslash textgreater} to generate the symbols \textless\ and
-\textgreater.
-
-You could also use {\tt \{\textbackslash tt 5 < 7\}} but then it
-will use the teletype font and look like this: {\tt 5 < 7}.
-
-Still another way is to write it using so called {\tt math mode}. This
-is a mode used for writing mathematical formulas in a nice way. You
-enclose your expression in {\tt \$} signs like this {\tt \$5 < 7\$}
-and then it will look like this $5 < 7$.
-
-If you have a larger mathematical expression you enclose it in double
-\$ and the result is that it is written centered with some space
-around it like this:  $$ 5 < (3 * 8 / 3 ) $$
-
-\subsection{math mode}
-
-There are several ways that you can write $n \log(n)$ in \LaTeX.
-
-\begin{itemize}
-\item {\tt \$n log(n)\$}  : which is interprated as $n xyz(n)$ i.e. $n \times l \times o \times g \times (n)$ and since we then omitt the multiplications it will be displayed as $n log(n)$
-
-\item {\tt \$n \textbackslash times log(n)\$} : which is better since
-  we then explicitly have one multiplication and it is displayed as
-  $n \times log(n)$.
-
-\item {\tt \$n \textbackslash log(n)\$} : which is how it should be
-  done, its now displayed as $n \log(n)$.
-\end{itemize}  
+The results of the benchmarks highlight that while arrays offer faster construction for smaller datasets,
+linked lists handle dynamic memory operations and growth more efficiently,
+particularly in scenarios where constant time complexity for appending is required.
 
 
 
-\subsection*{why strange font}
+\section{Stack with Linked Lists}
+Using a linked list, a stack can be efficiently implemented.
+The `linked\_add` operation can serve as the `push` operation,
+adding elements to the top of the stack.
+The `pop` operation can be implemented by removing and returning the first element of the linked list.
 
-If you want to write {\em foo} in teletype font you write like this
-\verb+{\tt foo}+. If you forget the closing \} then it will look like
-this: {\tt foo. Now everything here after until the end of you report
-  will look like this. }
-
-
-
-\section*{make}
-
-
-
-
+When compared to arrays, linked list stacks offer a dynamic growth advantage without requiring reallocation.
+However, they incur additional overhead due to dynamic memory allocation and pointer management.
 
 \end{document}

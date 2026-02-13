@@ -1,12 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <time.h>
 
-
-
-
-// Define the `cell` and `linked` data structures
+// Define the linked list structures
 typedef struct cell {
     int value;
     struct cell *tail;
@@ -16,14 +12,14 @@ typedef struct linked {
     cell *first;
 } linked;
 
-// Allocate and initialize an empty linked list
+// Function to create a new linked list
 linked *linked_create() {
     linked *new = (linked*)malloc(sizeof(linked));
     new->first = NULL;
     return new;
 }
 
-// Free the memory of the linked list and all its cells
+// Function to free the linked list
 void linked_free(linked *lnk) {
     cell *nxt = lnk->first;
     while (nxt != NULL) {
@@ -34,154 +30,103 @@ void linked_free(linked *lnk) {
     free(lnk);
 }
 
-// Add a new integer to the beginning of the linked list
+// Function to add a value to the start of the list
 void linked_add(linked *lnk, int item) {
-    cell *new_cell = (cell*)malloc(sizeof(cell));
-    new_cell->value = item;
-    new_cell->tail = lnk->first;  // Point the new cell to the previous first cell
-    lnk->first = new_cell;       // Update the first cell of the list
+    cell *new = (cell*)malloc(sizeof(cell));
+    new->value = item;
+    new->tail = lnk->first;
+    lnk->first = new;
 }
 
-// Calculate the length of the linked list
-int linked_length(linked *lnk) {
-    int length = 0;
-    cell *current = lnk->first;
-    while (current != NULL) {
-        length++;
-        current = current->tail;
-    }
-    return length;
-}
-
-// Find if an integer exists in the linked list
-bool linked_find(linked *lnk, int item) {
-    cell *current = lnk->first;
-    while (current != NULL) {
-        if (current->value == item) {
-            return true; // Return true if the item is found
-        }
-        current = current->tail;
-    }
-    return false; // Return false if the item is not found
-}
-
-// Remove an item from the linked list, if it exists
-void linked_remove(linked *lnk, int item) {
-    cell *current = lnk->first;
-    cell *previous = NULL;
-
-    while (current != NULL) {
-        if (current->value == item) { // If the item is found
-            if (previous == NULL) {   // If the item is the first cell
-                lnk->first = current->tail;
-            } else {                  // If the item is in the middle or end
-                previous->tail = current->tail;
-            }
-            free(current);
-            return; // Exit after removing the item
-        }
-        previous = current;
-        current = current->tail;
-    }
-}
-
-void linked_append(linked *a, linked *b) {
-    if (a->first == NULL) { // If the first list is empty
-        a->first = b->first; // Point the first list to the second list
-    } else {
-        // Traverse to the last cell of the first list
-        cell *current = a->first;
-        while (current->tail != NULL) {
-            current = current->tail;
-        }
-        // Append the second list
-        current->tail = b->first;
-    }
-    b->first = NULL; // Set the second list to be empty
-}
-
-#include <time.h> // For measuring time
-
+// Function to initialize a linked list with n elements
 linked *linked_init(int n) {
-    linked *a = linked_create();
+    linked *lnk = linked_create();
     for (int i = 0; i < n; i++) {
-        linked_add(a, i); // Add elements to the list
+        linked_add(lnk, i);
     }
-    return a;
+    return lnk;
 }
 
-// Benchmark appending a fixed size list `b` to varying size list `a`
-void benchmark_append_varying_a(int fixed_size_b, int max_size_a) {
-    // Initialize the fixed-size list `b`
-    linked *b = linked_init(fixed_size_b);
+// Function to append list b to the end of list a
+void linked_append(linked *a, linked *b) {
+    cell *curr = a->first;
+    cell *prev = NULL;
 
-    printf("Benchmark: Appending a fixed-size list b (%d elements) to varying-size lists a\n", fixed_size_b);
-    for (int size_a = 1; size_a <= max_size_a; size_a *= 2) {
-        // Initialize the list `a` with `size_a` elements
+    while (curr != NULL) {
+        prev = curr;
+        curr = curr->tail;
+    }
+    if (prev != NULL) {
+        prev->tail = b->first;
+    } else {
+        a->first = b->first;
+    }
+    b->first = NULL; // Clear list b
+}
+
+// Utility function to get nanoseconds from clock
+long long nano_seconds() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (long long)ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+// Benchmark function for varying the size of list a
+void benchmark_append_vary_a(int max_size, int increment, int b_size, const char *filename) {
+    FILE *file = fopen(filename, "w");
+    fprintf(file, "# SizeA Time(ns)\n");
+
+    for (int size_a = increment; size_a <= max_size; size_a += increment) {
         linked *a = linked_init(size_a);
+        linked *b = linked_init(b_size);
 
-        clock_t start = clock();  // Start the timer
+        long long start = nano_seconds();
         linked_append(a, b);
-        clock_t end = clock();    // End the timer
+        long long end = nano_seconds();
 
-        printf("Size(a): %d, Time taken: %.6f seconds\n", size_a, (double)(end - start) / CLOCKS_PER_SEC);
+        fprintf(file, "%d %lld\n", size_a, end - start);
 
-        // Free the memory
         linked_free(a);
-        b->first = NULL; // Reset b's first pointer to reuse it
+        linked_free(b);
     }
 
-    linked_free(b);
+    fclose(file);
+}
+
+// Benchmark function for varying the size of list b
+void benchmark_append_vary_b(int max_size, int increment, int a_size, const char *filename) {
+    FILE *file = fopen(filename, "w");
+    fprintf(file, "# SizeB Time(ns)\n");
+
+    for (int size_b = increment; size_b <= max_size; size_b += increment) {
+        linked *a = linked_init(a_size);
+        linked *b = linked_init(size_b);
+
+        long long start = nano_seconds();
+        linked_append(a, b);
+        long long end = nano_seconds();
+
+        fprintf(file, "%d %lld\n", size_b, end - start);
+
+        linked_free(a);
+        linked_free(b);
+    }
+
+    fclose(file);
 }
 
 int main() {
-    // Create a linked list
-    linked *list = linked_create();
+    // Configure benchmark parameters
+    int max_size_a = 10000; // Maximum size of list a
+    int max_size_b = 10000; // Maximum size of list b
+    int increment = 500;    // Size increment for both lists
+    int fixed_size_a = 1000; // Fixed size of list a for varying b
+    int fixed_size_b = 1000; // Fixed size of list b for varying a
 
-    // Add elements to the list
-    linked_add(list, 10);
-    linked_add(list, 20);
-    linked_add(list, 30);
+    // Generate data files
+    benchmark_append_vary_a(max_size_a, increment, fixed_size_b, "append_a_results.dat");
+    benchmark_append_vary_b(max_size_b, increment, fixed_size_a, "append_b_results.dat");
 
-    // Print the length of the list
-    printf("Length of list: %d\n", linked_length(list));
-
-    // Find elements in the list
-    printf("Find 20 in list: %s\n", linked_find(list, 20) ? "Found" : "Not Found");
-    printf("Find 40 in list: %s\n", linked_find(list, 40) ? "Found" : "Not Found");
-
-    // Remove an element from the list
-    printf("Removing 20 from list...\n");
-    linked_remove(list, 20);
-    printf("Length of list after removal: %d\n", linked_length(list));
-
-    // Print the remaining elements in the list
-    printf("Remaining list elements: ");
-    cell *current = list->first;
-    while (current != NULL) {
-        printf("%d ", current->value);
-        current = current->tail;
-    }
-    printf("\n");
-
-    // Create and append another list
-    linked *list2 = linked_create();
-    linked_add(list2, 50);
-    printf("Appending second list to the first list...\n");
-    linked_append(list, list2);
-
-    // Print all elements after appending
-    printf("List after appending: ");
-    current = list->first;
-    while (current != NULL) {
-        printf("%d ", current->value);
-        current = current->tail;
-    }
-    printf("\n");
-
-    // Free the memory
-    linked_free(list);
-    linked_free(list2);
-
+    printf("Benchmark data generated successfully!\n");
     return 0;
 }

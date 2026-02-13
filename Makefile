@@ -18,7 +18,8 @@ run:
 
 # Plot data with script
 plot:
-	gnuplot GnuGraphs.txt
+	gnuplot append_a_plot.txt
+	gnuplot append_b_plot.txt
 
 latex:
 	latexmk -pdf $(TEX_FILE)

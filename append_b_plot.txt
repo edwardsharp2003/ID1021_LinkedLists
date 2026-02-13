@@ -1,0 +1,13 @@
+set xlabel "List B Size (m)" font "Arial,18"
+set ylabel "Time Taken (nanoseconds)" font "Arial,18"
+set format x "%g"
+set xrange [0:*]
+set yrange [0:*]
+set title "Runtime of Linked Append (Varying List B size)" font "Arial,18"
+set xtics font "Arial,14"
+set ytics font "Arial,14"
+plot "append_b_results.dat" using 1:2 with linespoints title "Append B"
+set terminal png size 1280,720 enhanced font "Arial,16"
+set output "append_b_plot.png"
+replot
+set terminal wxt
